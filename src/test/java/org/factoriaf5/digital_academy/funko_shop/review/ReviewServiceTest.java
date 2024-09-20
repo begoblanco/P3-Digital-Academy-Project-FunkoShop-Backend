@@ -12,7 +12,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
@@ -53,8 +53,8 @@ public class ReviewServiceTest {
         review.setUser(user);
 
         ReviewDTO reviewDTO = new ReviewDTO(1L, 5, new OrderItemDTO(1L, 1, null, null, null), new UserDTO(1L, null, null, null, null, null, null, null, null));
-        when(orderItemRepository.findById(anyLong())).thenReturn(java.util.Optional.of(orderItem));
-        when(userRepository.findById(anyLong())).thenReturn(java.util.Optional.of(user));
+        when(orderItemRepository.findById(anyLong())).thenReturn(Optional.of(orderItem));
+        when(userRepository.findById(anyLong())).thenReturn(Optional.of(user));
         when(reviewRepository.save(any(Review.class))).thenReturn(review);
 
       
@@ -80,7 +80,7 @@ public class ReviewServiceTest {
         review.setUser(user);
 
         ReviewDTO reviewDTO = new ReviewDTO(1L, 5, new OrderItemDTO(1L, 1, null, null, null), new UserDTO(1L, null, null, null, null, null, null, null, null));
-        when(reviewRepository.findById(anyLong())).thenReturn(java.util.Optional.of(review));
+        when(reviewRepository.findById(anyLong())).thenReturn(Optional.of(review));
 
       
         ReviewDTO result = reviewService.getReviewById(1L);
@@ -139,9 +139,9 @@ public class ReviewServiceTest {
         updatedReview.setUser(user);
 
         ReviewDTO reviewDTO = new ReviewDTO(1L, 5, new OrderItemDTO(1L, 1, null, null, null), new UserDTO(1L, null, null, null, null, null, null, null, null));
-        when(reviewRepository.findById(anyLong())).thenReturn(java.util.Optional.of(existingReview));
-        when(orderItemRepository.findById(anyLong())).thenReturn(java.util.Optional.of(orderItem));
-        when(userRepository.findById(anyLong())).thenReturn(java.util.Optional.of(user));
+        when(reviewRepository.findById(anyLong())).thenReturn(Optional.of(existingReview));
+        when(orderItemRepository.findById(anyLong())).thenReturn(Optional.of(orderItem));
+        when(userRepository.findById(anyLong())).thenReturn(Optional.of(user));
         when(reviewRepository.save(any(Review.class))).thenReturn(updatedReview);
 
         
@@ -166,7 +166,7 @@ public class ReviewServiceTest {
         review.setOrderItem(orderItem);
         review.setUser(user);
 
-        when(reviewRepository.findById(anyLong())).thenReturn(java.util.Optional.of(review));
+        when(reviewRepository.findById(anyLong())).thenReturn(Optional.of(review));
 
        
         reviewService.deleteReview(1L);

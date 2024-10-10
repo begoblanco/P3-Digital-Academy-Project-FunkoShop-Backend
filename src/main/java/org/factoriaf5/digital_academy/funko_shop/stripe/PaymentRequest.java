@@ -1,13 +1,13 @@
 package org.factoriaf5.digital_academy.funko_shop.stripe;
 
 public class PaymentRequest {
-    private long amount;
+    private Long amount;
 
-    public long getAmount() {
+    public Long getAmount() {
         return amount;
     }
 
-    public void setAmount(long amount) {
+    public void setAmount(Long amount) {
         this.amount = amount;
     }
 }

@@ -93,7 +93,6 @@ public class ProductController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAuthority('admin:update')")
     public ResponseEntity<ProductDTO> updateProduct(@PathVariable Long id,
             @Valid @RequestBody ProductDTO productDto) {
         Long categoryId = productDto.getCategory() != null ? productDto.getCategory().getId() : null;

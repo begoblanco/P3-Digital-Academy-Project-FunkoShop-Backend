@@ -5,8 +5,8 @@ INSERT INTO users (user_id, email, password, role) VALUES (default, 'admin@gmail
 
 -- Profiles
 INSERT INTO profiles (first_name, last_name, phone_number, street, city, region, postal_code, country, user_id, is_shipping, is_subscribed) VALUES
-('Carlos', 'Gómez', '5551234567', '123 Avenida Principal', 'Ciudad de México', 'CDMX', '01000', 'México', 1, false, false),
-('Sofía', 'Martínez', '5559876543', '456 Calle Secundaria', 'Guadalajara', 'Jalisco', '44100', 'México', 2, true, true);
+('Carlos', 'Gómez', '+3451234567', '123 Avenida Principal', 'Madrid', 'Madrid', '01000', 'Spain', 1, false, false),
+('Sofía', 'Martínez', '+3459876543', '456 Calle Secundaria', 'Cartagena', 'Murcia', '44100', 'Spain', 2, true, true);
 
 -- Categories
 INSERT INTO categories (category_id, name, highlights, image_hash) VALUES (default, 'Animation', false, 'http://localhost:5173/src/assets/img/Carrousel/animation.jpg'),

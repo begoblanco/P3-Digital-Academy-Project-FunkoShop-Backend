@@ -56,7 +56,7 @@ public class OrderController {
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
-    @GetMapping("/user/{userId}")
+    @GetMapping("/user")
     public ResponseEntity<Page<OrderDTO>> getOrdersByUser(
             Principal connectedUser,
             @PageableDefault(size = 8, sort = { "createdAt" }) Pageable pageable) {

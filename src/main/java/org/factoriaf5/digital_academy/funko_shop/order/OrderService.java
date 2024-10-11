@@ -38,7 +38,6 @@ public class OrderService {
     private TrackingRepository trackingRepository;
 
     public OrderDTO addOrder(Order order, User user) {
-
         Order newOrder = new Order();
         newOrder.setStatus(order.getStatus());
         newOrder.setTotalPrice(order.getTotalPrice());

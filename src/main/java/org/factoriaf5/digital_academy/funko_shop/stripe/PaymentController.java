@@ -30,7 +30,7 @@ public class PaymentController {
 
         Map<String, Object> params = new HashMap<>();
         params.put("amount", paymentRequest.getAmount());
-        params.put("currency", "usd");
+        params.put("currency", "eur");
         params.put("automatic_payment_methods[enabled]", true);
 
         try {

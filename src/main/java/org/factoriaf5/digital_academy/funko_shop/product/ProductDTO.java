@@ -26,4 +26,6 @@ public class ProductDTO {
     private Date createdAt;
     private CategoryDTO category;
     private int discount;
+    private int totalReviews;
+    private double averageRating;
 }

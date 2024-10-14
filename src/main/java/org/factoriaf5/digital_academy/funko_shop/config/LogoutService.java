@@ -4,6 +4,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 
+import org.factoriaf5.digital_academy.funko_shop.token.Token;
 import org.factoriaf5.digital_academy.funko_shop.token.TokenRepository;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -28,7 +29,7 @@ public class LogoutService implements LogoutHandler {
       return;
     }
     jwt = authHeader.substring(7);
-    var storedToken = tokenRepository.findByToken(jwt)
+    Token storedToken = tokenRepository.findByToken(jwt)
         .orElse(null);
     if (storedToken != null) {
       storedToken.setExpired(true);

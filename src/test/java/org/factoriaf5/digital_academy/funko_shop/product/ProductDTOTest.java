@@ -1,68 +1,78 @@
 package org.factoriaf5.digital_academy.funko_shop.product;
 
 import org.factoriaf5.digital_academy.funko_shop.category.CategoryDTO;
-import org.factoriaf5.digital_academy.funko_shop.discount.DiscountDTO;
 import org.junit.jupiter.api.Test;
-import static org.assertj.core.api.Assertions.assertThat;
+import jakarta.validation.Validation;
+import jakarta.validation.Validator;
+import jakarta.validation.ValidatorFactory;
 
+import java.util.Date;
+import java.util.Optional;
+import java.util.Set;
+import jakarta.validation.ConstraintViolation;
 
+import static org.junit.jupiter.api.Assertions.*;
 
-public class ProductDTOTest {
+class ProductDTOTest {
 
     @Test
-    public void testProductDTOConstructorAndGetters() {
-        CategoryDTO category = new CategoryDTO(1L, "CategoryName", null);
-        DiscountDTO discount = new DiscountDTO();
-        
-        ProductDTO product = new ProductDTO(1L, "ProductName", "ImageHash", "Description", 100.0f, 10, true, category, discount);
-        
-        assertThat(product.getId()).isEqualTo(1L);
-        assertThat(product.getName()).isEqualTo("ProductName");
-        assertThat(product.getImageHash()).isEqualTo("ImageHash");
-        assertThat(product.getDescription()).isEqualTo("Description");
-        assertThat(product.getPrice()).isEqualTo(100.0f);
-        assertThat(product.getStock()).isEqualTo(10);
-        assertThat(product.isAvailable()).isTrue();
-        assertThat(product.getCategory()).isEqualTo(category);
-        assertThat(product.getDiscount()).isEqualTo(discount);
+    void testProductDTO_AllFields() {
+        CategoryDTO categoryDTO = new CategoryDTO(1L, "Funko Pop", "imageHash", true);
+        Date currentDate = new Date();
+
+        ProductDTO productDTO = new ProductDTO(
+                1L,
+                "Test Product",
+                Optional.of("imageHash1"),
+                Optional.of("imageHash2"),
+                "Test description",
+                100.0f,
+                80.0f,
+                10,
+                currentDate,
+                categoryDTO,
+                20,
+                100,
+                4.5);
+
+        assertEquals(1L, productDTO.getId());
+        assertEquals("Test Product", productDTO.getName());
+        assertTrue(productDTO.getImageHash().isPresent());
+        assertEquals("imageHash1", productDTO.getImageHash().get());
+        assertEquals(100.0f, productDTO.getPrice());
+        assertEquals(80.0f, productDTO.getDiscountedPrice());
+        assertEquals(10, productDTO.getStock());
+        assertEquals(currentDate, productDTO.getCreatedAt());
+        assertEquals(20, productDTO.getDiscount());
+        assertEquals(100, productDTO.getTotalReviews());
+        assertEquals(4.5, productDTO.getAverageRating());
     }
 
     @Test
-    public void testProductDTOSetters() {
-        CategoryDTO category = new CategoryDTO(1L, "CategoryName", null);
-        DiscountDTO discount = new DiscountDTO();
-        
-        ProductDTO product = new ProductDTO();
-        product.setId(1L);
-        product.setName("ProductName");
-        product.setImageHash("ImageHash");
-        product.setDescription("Description");
-        product.setPrice(100.0f);
-        product.setStock(10);
-        product.setAvailable(true);
-        product.setCategory(category);
-        product.setDiscount(discount);
-        
-        assertThat(product.getId()).isEqualTo(1L);
-        assertThat(product.getName()).isEqualTo("ProductName");
-        assertThat(product.getImageHash()).isEqualTo("ImageHash");
-        assertThat(product.getDescription()).isEqualTo("Description");
-        assertThat(product.getPrice()).isEqualTo(100.0f);
-        assertThat(product.getStock()).isEqualTo(10);
-        assertThat(product.isAvailable()).isTrue();
-        assertThat(product.getCategory()).isEqualTo(category);
-        assertThat(product.getDiscount()).isEqualTo(discount);
+    void testPriceConstraint() {
+        ProductDTO productDTO = new ProductDTO();
+        productDTO.setPrice(-10.0f);
+        productDTO.setStock(10);
+
+        ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
+        Validator validator = factory.getValidator();
+        Set<ConstraintViolation<ProductDTO>> violations = validator.validate(productDTO);
+
+        assertFalse(violations.isEmpty());
+        assertEquals("Price must be positive", violations.iterator().next().getMessage());
     }
 
     @Test
-    public void testProductDTOEquality() {
-        CategoryDTO category = new CategoryDTO(1L, "CategoryName", null);
-        DiscountDTO discount = new DiscountDTO();
-        
-        ProductDTO product1 = new ProductDTO(1L, "ProductName", "ImageHash", "Description", 100.0f, 10, true, category, discount);
-        ProductDTO product2 = new ProductDTO(1L, "ProductName", "ImageHash", "Description", 100.0f, 10, true, category, discount);
-        
-        assertThat(product1).isEqualTo(product2);
-        assertThat(product1.hashCode()).isEqualTo(product2.hashCode());
+    void testStockConstraint() {
+        ProductDTO productDTO = new ProductDTO();
+        productDTO.setStock(-5);
+        productDTO.setPrice(10.0f);
+
+        ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
+        Validator validator = factory.getValidator();
+        Set<ConstraintViolation<ProductDTO>> violations = validator.validate(productDTO);
+
+        assertFalse(violations.isEmpty());
+        assertEquals("Stock must be positive or zero", violations.iterator().next().getMessage());
     }
 }

@@ -7,7 +7,7 @@ import lombok.*;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class NewLetterDTO {
+public class NewsLetterDTO {
 
     private Long id;
     private String code;

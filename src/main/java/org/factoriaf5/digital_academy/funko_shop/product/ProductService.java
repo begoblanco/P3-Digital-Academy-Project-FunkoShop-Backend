@@ -4,16 +4,20 @@ import org.factoriaf5.digital_academy.funko_shop.category.Category;
 import org.factoriaf5.digital_academy.funko_shop.category.CategoryDTO;
 import org.factoriaf5.digital_academy.funko_shop.category.CategoryRepository;
 import org.factoriaf5.digital_academy.funko_shop.category.category_exceptions.CategoryNotFoundException;
+import org.factoriaf5.digital_academy.funko_shop.order_item.OrderItem;
 import org.factoriaf5.digital_academy.funko_shop.product.product_exceptions.ProductNotFoundException;
+import org.factoriaf5.digital_academy.funko_shop.review.Review;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.Date;
 
 @Service
@@ -95,14 +99,14 @@ public class ProductService {
     }
 
     private ProductDTO mapToDTOWithDiscount(Product product) {
-        ProductDTO productDTO = mapToDTO(product);  
+        ProductDTO productDTO = mapToDTO(product);
 
         if (product.getDiscount() > 0 && product.getDiscount() <= 100) {
             float discountMultiplier = 1 - (product.getDiscount() / 100.0f);
             float discountedPrice = product.getPrice() * discountMultiplier;
             productDTO.setDiscountedPrice(discountedPrice);
         } else {
-            productDTO.setDiscountedPrice(product.getPrice());  
+            productDTO.setDiscountedPrice(product.getPrice());
         }
 
         return productDTO;
@@ -110,8 +114,14 @@ public class ProductService {
 
     private void updateProductFields(Product product, ProductDTO productDto) {
         product.setName(productDto.getName());
-        product.setImageHash(productDto.getImageHash().get());
-        product.setImageHash2(productDto.getImageHash2().get());
+        if (productDto.getImageHash() != null && productDto.getImageHash().isPresent()
+                && productDto.getImageHash().get() != null) {
+            product.setImageHash(productDto.getImageHash().get());
+        }
+        if (productDto.getImageHash2() != null && productDto.getImageHash2().isPresent()
+                && productDto.getImageHash2().get() != null) {
+            product.setImageHash2(productDto.getImageHash2().get());
+        }
         product.setDescription(productDto.getDescription());
         product.setPrice(productDto.getPrice());
         product.setStock(productDto.getStock());
@@ -154,9 +164,21 @@ public class ProductService {
                     product.getCategory().getId(),
                     product.getCategory().getName(),
                     product.getCategory().getImageHash(),
-                    product.getCategory().isHighlights()
-            );
+                    product.getCategory().isHighlights());
         }
+
+        List<Review> reviews = Optional.ofNullable(product.getOrderItems())
+                .orElse(Collections.emptyList())
+                .stream()
+                .map(OrderItem::getReview)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+    
+        int totalReviews = reviews.size();
+        double averageRating = totalReviews > 0 ? reviews.stream()
+                .mapToInt(Review::getRating)
+                .average()
+                .orElse(0.0) : 0.0;
 
         return new ProductDTO(
                 product.getId(),
@@ -165,11 +187,13 @@ public class ProductService {
                 Optional.ofNullable(product.getImageHash2()),
                 product.getDescription(),
                 product.getPrice(),
-                product.getPrice(),  
+                product.getPrice(),
                 product.getStock(),
-                product.getCreatedAt(),  
+                product.getCreatedAt(),
                 categoryDTO,
-                product.getDiscount()
-        );
+                product.getDiscount(),
+                totalReviews,
+                averageRating);
     }
+
 }

@@ -20,7 +20,6 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import org.factoriaf5.digital_academy.funko_shop.account_settings.AccountSettings;
-import org.factoriaf5.digital_academy.funko_shop.cart.Cart;
 import org.factoriaf5.digital_academy.funko_shop.order.Order;
 import org.factoriaf5.digital_academy.funko_shop.profile.Profile;
 import org.factoriaf5.digital_academy.funko_shop.review.Review;
@@ -55,9 +54,6 @@ public class User implements UserDetails {
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
     private List<Order> orders;
-
-    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
-    private Cart cart;
 
     @Enumerated(EnumType.STRING)
     private Role role;

@@ -10,6 +10,7 @@ import org.factoriaf5.digital_academy.funko_shop.product.Product;
 import org.factoriaf5.digital_academy.funko_shop.product.ProductDTO;
 import org.factoriaf5.digital_academy.funko_shop.product.ProductRepository;
 import org.factoriaf5.digital_academy.funko_shop.product.product_exceptions.ProductNotFoundException;
+import org.factoriaf5.digital_academy.funko_shop.review.Review;
 import org.factoriaf5.digital_academy.funko_shop.tracking.Tracking;
 import org.factoriaf5.digital_academy.funko_shop.tracking.TrackingDTO;
 import org.factoriaf5.digital_academy.funko_shop.tracking.TrackingRepository;
@@ -179,11 +180,21 @@ public class OrderService {
                 orderItem.getId(),
                 orderItem.getQuantity(),
                 null,
-                productDTO,
-                null);
+                productDTO);
     }
 
     private ProductDTO mapToProductDTO(Product product) {
+        List<Review> reviews = product.getOrderItems().stream()
+                .map(OrderItem::getReview)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+
+        int totalReviews = reviews.size();
+        double averageRating = totalReviews > 0 ? reviews.stream()
+                .mapToInt(Review::getRating)
+                .average()
+                .orElse(0.0) : 0.0;
+
         return new ProductDTO(
                 product.getId(),
                 product.getName(),
@@ -195,7 +206,9 @@ public class OrderService {
                 product.getStock(),
                 product.getCreatedAt(),
                 mapToCategoryDTO(product.getCategory()),
-                product.getDiscount());
+                product.getDiscount(),
+                totalReviews,
+                averageRating);
     }
 
     private float calculateDiscountedPrice(float price, int discount) {

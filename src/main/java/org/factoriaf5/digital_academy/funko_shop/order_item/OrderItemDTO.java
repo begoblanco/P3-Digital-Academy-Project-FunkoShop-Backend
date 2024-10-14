@@ -15,6 +15,5 @@ public class OrderItemDTO {
     private int quantity;
     private OrderDTO order;
     private ProductDTO product;
-    private ReviewDTO review;
 
 }

@@ -29,7 +29,7 @@ public class ProfileController {
     @GetMapping("/user")
     public ResponseEntity<ProfileDTO> getProfileByUser(Principal connectedUser) {
         try {
-            var user = (User) ((UsernamePasswordAuthenticationToken) connectedUser).getPrincipal();
+            User user = (User) ((UsernamePasswordAuthenticationToken) connectedUser).getPrincipal();
             ProfileDTO profile = profileService.getProfileByUser(user);
             return ResponseEntity.ok(profile);
         } catch (ProfileNotFoundException e) {
@@ -41,7 +41,7 @@ public class ProfileController {
     public ResponseEntity<ProfileDTO> updateProfile(Principal connectedUser,
             @Valid @RequestBody ProfileDTO profileDTO) {
         try {
-            var user = (User) ((UsernamePasswordAuthenticationToken) connectedUser).getPrincipal();
+            User user = (User) ((UsernamePasswordAuthenticationToken) connectedUser).getPrincipal();
             ProfileDTO updatedProfile = profileService.updateProfile(user, profileDTO);
             return ResponseEntity.ok(updatedProfile);
         } catch (ProfileNotFoundException e) {

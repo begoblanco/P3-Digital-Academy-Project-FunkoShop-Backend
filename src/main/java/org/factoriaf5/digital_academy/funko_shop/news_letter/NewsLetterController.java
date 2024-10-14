@@ -8,32 +8,40 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("${api-endpoint}/news-letter")
-public class NewLetterController {
+public class NewsLetterController {
     
     @Autowired
-    private NewLetterService newLetterService;
+    private NewsLetterService newsLetterService;
 
     @PostMapping
-    public ResponseEntity<NewLetterDTO> createnNewLetter(@Valid @RequestBody NewLetterDTO newLetterDTO) {
+    public ResponseEntity<NewsLetterDTO> createnNewsLetter(@Valid @RequestBody NewsLetterDTO newsLetterDTO) {
 
-        NewLetterDTO newNewLetterDTO = newLetterService.createNewLetter(newLetterDTO);
+        NewsLetterDTO newNewsLetterDTO = newsLetterService.createNewsLetter(newsLetterDTO);
 
-        if (newNewLetterDTO == null) {
+        if (newNewsLetterDTO == null) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(newNewLetterDTO);
+        return ResponseEntity.status(HttpStatus.CREATED).body(newNewsLetterDTO);
     }
 
     @DeleteMapping("/{code}")
     public ResponseEntity<Void> deleteProduct(@PathVariable String code) {
-        newLetterService.deleteProduct(code);
+        newsLetterService.deleteProduct(code);
         return ResponseEntity.noContent().build();
     }
+
+    @DeleteMapping("/unsubscribe")
+    public ResponseEntity<Void> unsubscribe(@RequestParam String code) {
+        newsLetterService.deleteProduct(code);
+        return ResponseEntity.noContent().build();
+    }
+
 }

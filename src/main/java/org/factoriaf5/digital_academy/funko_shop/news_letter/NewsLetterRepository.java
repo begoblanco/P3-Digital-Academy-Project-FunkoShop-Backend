@@ -4,7 +4,7 @@ import org.springframework.stereotype.Repository;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 @Repository
-public interface NewLetterRepository extends JpaRepository<NewLetter, Long> {
-    NewLetter findByCode(String code);
+public interface NewsLetterRepository extends JpaRepository<NewsLetter, Long> {
+    NewsLetter findByCode(String code);
     boolean existsByEmail(String email);
 }

@@ -36,18 +36,16 @@ public class ProductController {
         }
         try {
 
-            String imageUrl1 = null;
-            if (productDto.getImageHash().isPresent()) {
-                imageUrl1 = imageService.uploadBase64(productDto.getImageHash().get())
-                        .orElseThrow(() -> new IllegalArgumentException("Failed to upload image 1"));
-            }
+            String imageUrl1 = productDto.getImageHash()
+                .map(imageHash -> imageService.uploadBase64(imageHash)
+                .orElseThrow(() -> new IllegalArgumentException("Failed to upload image 1")))
+                .orElse("https://iili.io/2HTt1PR.jpg");
             productDto.setImageHash(Optional.ofNullable(imageUrl1));
 
-            String imageUrl2 = null;
-            if (productDto.getImageHash2().isPresent()) {
-                imageUrl2 = imageService.uploadBase64(productDto.getImageHash2().get())
-                        .orElseThrow(() -> new IllegalArgumentException("Failed to upload image 2"));
-            }
+            String imageUrl2 = productDto.getImageHash2()
+                .map(imageHash2 -> imageService.uploadBase64(imageHash2)
+                .orElseThrow(() -> new IllegalArgumentException("Failed to upload image 2")))
+                .orElse("https://iili.io/2HTt1PR.jpg");
             productDto.setImageHash2(Optional.ofNullable(imageUrl2));
 
             ProductDTO createdProduct = productService.createProduct(productDto, categoryId);
@@ -93,6 +91,7 @@ public class ProductController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('admin:update')")
     public ResponseEntity<ProductDTO> updateProduct(@PathVariable Long id,
             @Valid @RequestBody ProductDTO productDto) {
         Long categoryId = productDto.getCategory() != null ? productDto.getCategory().getId() : null;
@@ -101,19 +100,17 @@ public class ProductController {
             throw new IllegalArgumentException("Category ID cannot be null");
         }
         try {
-            String imageUrl1 = null;
-            if (productDto.getImageHash().isPresent()) {
-                imageUrl1 = imageService.uploadBase64(productDto.getImageHash().get())
+            if (productDto.getImageHash() != null && productDto.getImageHash().isPresent()) {
+                String imageUrl1 = imageService.uploadBase64(productDto.getImageHash().get())
                         .orElseThrow(() -> new IllegalArgumentException("Failed to upload image 1"));
+                productDto.setImageHash(Optional.of(imageUrl1));
             }
-            productDto.setImageHash(Optional.ofNullable(imageUrl1));
 
-            String imageUrl2 = null;
-            if (productDto.getImageHash2().isPresent()) {
-                imageUrl2 = imageService.uploadBase64(productDto.getImageHash2().get())
+            if (productDto.getImageHash2() != null && productDto.getImageHash2().isPresent()) {
+                String imageUrl2 = imageService.uploadBase64(productDto.getImageHash2().get())
                         .orElseThrow(() -> new IllegalArgumentException("Failed to upload image 2"));
+                productDto.setImageHash2(Optional.of(imageUrl2));
             }
-            productDto.setImageHash2(Optional.ofNullable(imageUrl2));
 
             ProductDTO updatedProduct = productService.updateProduct(id, productDto);
 

@@ -1,9 +1,15 @@
 package org.factoriaf5.digital_academy.funko_shop.order;
 
+import org.factoriaf5.digital_academy.funko_shop.category.Category;
+import org.factoriaf5.digital_academy.funko_shop.category.CategoryDTO;
 import org.factoriaf5.digital_academy.funko_shop.order.order_exceptions.OrderNotFoundException;
+import org.factoriaf5.digital_academy.funko_shop.order_item.OrderItem;
+import org.factoriaf5.digital_academy.funko_shop.order_item.OrderItemDTO;
 import org.factoriaf5.digital_academy.funko_shop.order_item.OrderItemRepository;
 import org.factoriaf5.digital_academy.funko_shop.product.Product;
+import org.factoriaf5.digital_academy.funko_shop.product.ProductDTO;
 import org.factoriaf5.digital_academy.funko_shop.product.ProductRepository;
+import org.factoriaf5.digital_academy.funko_shop.product.product_exceptions.ProductNotFoundException;
 import org.factoriaf5.digital_academy.funko_shop.tracking.TrackingRepository;
 import org.factoriaf5.digital_academy.funko_shop.user.User;
 import org.junit.jupiter.api.BeforeEach;
@@ -13,6 +19,7 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.data.domain.*;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Optional;
 
@@ -153,5 +160,155 @@ class OrderServiceTest {
         assertNotNull(result);
         assertEquals(1, result.getTotalElements());
         verify(orderRepository).findByUser(user, pageRequest);
+    }
+
+    @Test
+    void mapToOrderItem_Success() {
+        OrderItemDTO dto = new OrderItemDTO();
+        dto.setId(1L);
+        dto.setQuantity(2);
+        Product product = new Product();
+        product.setId(1L);
+        dto.setProduct(new ProductDTO(1L, "Funko Pop", null, null, null, 20.0f, 0.0f, 10, null, null, 0, 0, 0));
+
+        when(productRepository.findById(1L)).thenReturn(Optional.of(product));
+
+        Order order = new Order();
+        OrderItem result = orderService.mapToOrderItem(dto, order);
+
+        assertNotNull(result);
+        assertEquals(1L, result.getId());
+        assertEquals(2, result.getQuantity());
+        assertEquals(order, result.getOrder());
+        assertEquals(product, result.getProduct());
+    }
+
+    @Test
+    void mapToOrderItem_ProductNotFound() {
+        OrderItemDTO dto = new OrderItemDTO();
+        dto.setId(1L);
+        dto.setQuantity(2);
+        dto.setProduct(new ProductDTO(1L, "Funko Pop", null, null, null, 20.0f, 0.0f, 10, null, null, 0, 0, 0));
+
+        when(productRepository.findById(1L)).thenReturn(Optional.empty());
+
+        Order order = new Order();
+
+        assertThrows(ProductNotFoundException.class, () -> orderService.mapToOrderItem(dto, order));
+    }
+
+    @Test
+    void mapToDTO_Success() {
+        Order order = new Order();
+        order.setId(1L);
+        order.setStatus("PENDING");
+        order.setTotalPrice(100.0f);
+        order.setTotalItems(2);
+        order.setPaid(false);
+
+        OrderItem orderItem = new OrderItem();
+        orderItem.setId(1L);
+        orderItem.setQuantity(2);
+        orderItem.setOrder(order);
+
+        Product product = new Product();
+        product.setId(1L);
+        product.setOrderItems(new ArrayList<>());
+        orderItem.setProduct(product);
+
+        OrderDTO result = orderService.mapToDTO(order);
+
+        assertNotNull(result);
+        assertEquals(1L, result.getId());
+        assertEquals("PENDING", result.getStatus());
+        assertEquals(100.0f, result.getTotalPrice());
+        assertEquals(2, result.getTotalItems());
+        assertFalse(result.isPaid());
+        assertEquals(0, result.getOrderItems().size());
+    }
+
+    @Test
+    void mapToOrderItemDTO_Success() {
+        Order order = new Order();
+        order.setId(1L);
+        order.setStatus("PENDING");
+        order.setTotalPrice(100.0f);
+        order.setTotalItems(2);
+        order.setPaid(false);
+
+        OrderItem orderItem = new OrderItem();
+        orderItem.setId(1L);
+        orderItem.setQuantity(2);
+        orderItem.setOrder(order);
+
+        Product product = new Product();
+        product.setId(1L);
+        product.setOrderItems(new ArrayList<>());
+        orderItem.setProduct(product);
+
+        OrderItemDTO result = orderService.mapToOrderItemDTO(orderItem);
+
+        assertNotNull(result);
+        assertEquals(1L, result.getId());
+        assertEquals(2, result.getQuantity());
+        assertNotNull(result.getProduct());
+        assertEquals(1L, result.getProduct().getId());
+    }
+
+    @Test
+    void mapToProductDTO_Success() {
+
+        Product product = new Product();
+        product.setId(1L);
+        product.setOrderItems(new ArrayList<>());
+        product.setName("Funko Pop");
+        product.setPrice(20.0f);
+        product.setDiscount(50);
+        product.setStock(10);
+
+        ProductDTO result = orderService.mapToProductDTO(product);
+
+        assertNotNull(result);
+        assertEquals(1L, result.getId());
+        assertEquals("Funko Pop", result.getName());
+        assertEquals(20.0f, result.getPrice());
+        assertEquals(10.0f, result.getDiscountedPrice());
+        assertEquals(0, result.getTotalReviews());
+        assertEquals(0.0, result.getAverageRating());
+    }
+
+    @Test
+    void calculateDiscountedPrice_WithDiscount() {
+        float result = orderService.calculateDiscountedPrice(100.0f, 20);
+        assertEquals(80.0f, result);
+    }
+
+    @Test
+    void calculateDiscountedPrice_NoDiscount() {
+        float result = orderService.calculateDiscountedPrice(100.0f, 0);
+        assertEquals(100.0f, result);
+    }
+
+    @Test
+    void mapToCategoryDTO_Success() {
+        Category category = new Category();
+        category.setId(1L);
+        category.setName("Category 1");
+        category.setImageHash("imageHash");
+        category.setHighlights(true);
+
+        CategoryDTO result = orderService.mapToCategoryDTO(category);
+
+        assertNotNull(result);
+        assertEquals(1L, result.getId());
+        assertEquals("Category 1", result.getName());
+        assertEquals("imageHash", result.getImageHash());
+        assertTrue(result.isHighlights());
+    }
+
+    @Test
+    void mapToCategoryDTO_NullCategory() {
+        CategoryDTO result = orderService.mapToCategoryDTO(null);
+        assertNull(result);
     }
 }

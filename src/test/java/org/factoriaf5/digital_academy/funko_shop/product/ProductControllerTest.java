@@ -1,156 +1,254 @@
-// package org.factoriaf5.digital_academy.funko_shop.product;
+ package org.factoriaf5.digital_academy.funko_shop.product;
 
-// import com.fasterxml.jackson.databind.ObjectMapper;
-// import org.factoriaf5.digital_academy.funko_shop.category.CategoryDTO;
-// import org.factoriaf5.digital_academy.funko_shop.product.product_exceptions.ProductNotFoundException;
-// import org.junit.jupiter.api.BeforeEach;
-// import org.junit.jupiter.api.Test;
-// import org.springframework.beans.factory.annotation.Autowired;
-// import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureWebMvc;
-// import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-// import org.springframework.boot.test.mock.mockito.MockBean;
-// import org.springframework.data.domain.Page;
-// import org.springframework.data.domain.PageImpl;
-// import org.springframework.data.domain.Pageable;
-// import org.springframework.http.MediaType;
-// import org.springframework.test.web.servlet.MockMvc;
+ import org.factoriaf5.digital_academy.funko_shop.category.CategoryDTO;
+import org.factoriaf5.digital_academy.funko_shop.firebase.ImageService;
+import org.factoriaf5.digital_academy.funko_shop.product.product_exceptions.ProductNotFoundException;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.data.domain.Pageable;
 
-// import java.util.Arrays;
-// import java.util.List;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
 
-// import static org.mockito.ArgumentMatchers.*;
-// import static org.mockito.Mockito.*;
-// import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-// import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.*;
 
-// @WebMvcTest(ProductController.class)
-// @AutoConfigureWebMvc
-// public class ProductControllerTest {
+class ProductControllerTest {
 
-//     @Autowired
-//     private MockMvc mockMvc;
+    @Mock
+    private ProductService productService;
 
-//     @MockBean
-//     private ProductService productService;
+    @Mock
+    private ImageService imageService;
 
-//     @Autowired
-//     private ObjectMapper objectMapper;
+    @InjectMocks
+    private ProductController productController;
 
-//     private ProductDTO productDTO;
-//     private static final String API_ENDPOINT = "/api/v1/products";
+    @BeforeEach
+    void setUp() {
+        MockitoAnnotations.openMocks(this);
+    }
 
-//     @BeforeEach
-//     void setUp() {
-//         productDTO = new ProductDTO();
-//         productDTO.setId(1L);
-//         productDTO.setName("Test Product");
-//         productDTO.setDescription("Test Description");
-//         productDTO.setStock(100);
-//         productDTO.setImageHash("test-hash");
-//         productDTO.setPrice(19.99f);
-//         CategoryDTO categoryDTO = new CategoryDTO();
-//         categoryDTO.setId(1L);
-//         productDTO.setCategory(categoryDTO);
-//         productDTO.setDiscount(null);
-//         productDTO.setAvailable(false);
-//     }
+    @Test
+    void createProduct_ShouldReturnCreatedProduct() {
+        ProductDTO productDto = new ProductDTO();
+        productDto.setCategory(new CategoryDTO(1L));
+        productDto.setImageHash(Optional.of("base64Image1"));
+        productDto.setImageHash2(Optional.of("base64Image2"));
 
-//     @Test
-//     void createProduct_ShouldReturnCreatedProduct() throws Exception {
-//         when(productService.createProduct(any(ProductDTO.class), anyLong(), any())).thenReturn(productDTO);
+        when(imageService.uploadBase64(any())).thenReturn(Optional.of("uploadedImageUrl"));
+        when(productService.createProduct(any(), any())).thenReturn(productDto);
 
-//         mockMvc.perform(post(API_ENDPOINT)
-//                 .contentType(MediaType.APPLICATION_JSON)
-//                 .content(objectMapper.writeValueAsString(productDTO)))
-//                 .andExpect(status().isCreated())
-//                 .andExpect(jsonPath("$.id").value(1))
-//                 .andExpect(jsonPath("$.name").value("Test Product"));
-//     }
+        ResponseEntity<ProductDTO> response = productController.createProduct(productDto);
 
-//     @Test
-//     void getAllProducts_ShouldReturnProductPage() throws Exception {
-//         List<ProductDTO> products = Arrays.asList(productDTO);
-//         Page<ProductDTO> productPage = new PageImpl<>(products);
+        assertEquals(HttpStatus.CREATED, response.getStatusCode());
+        assertEquals(productDto, response.getBody());
+    }
 
-//         when(productService.getAllProducts(any(Pageable.class))).thenReturn(productPage);
+    @Test
+    void createProduct_ShouldThrowIllegalArgumentException_WhenCategoryIsNull() {
+        ProductDTO productDto = new ProductDTO();
+        productDto.setCategory(null);
 
-//         mockMvc.perform(get(API_ENDPOINT))
-//                 .andExpect(status().isOk())
-//                 .andExpect(jsonPath("$.content[0].id").value(1))
-//                 .andExpect(jsonPath("$.content[0].name").value("Test Product"));
-//     }
+        assertThrows(IllegalArgumentException.class, () -> productController.createProduct(productDto));
+    }
 
-//     @Test
-//     void getProductById_ShouldReturnProduct() throws Exception {
-//         when(productService.getProductById(1L)).thenReturn(productDTO);
+    @Test
+    void getProductById_ShouldReturnProduct_WhenFound() {
+        Long productId = 1L;
+        ProductDTO productDto = new ProductDTO();
 
-//         mockMvc.perform(get(API_ENDPOINT + "/1"))
-//                 .andExpect(status().isOk())
-//                 .andExpect(jsonPath("$.id").value(1))
-//                 .andExpect(jsonPath("$.name").value("Test Product"));
-//     }
+        when(productService.getProductById(productId)).thenReturn(productDto);
 
-//     @Test
-//     void getProductById_ShouldReturnNotFound() throws Exception {
-//         when(productService.getProductById(99L)).thenThrow(new ProductNotFoundException("Product not found"));
+        ResponseEntity<ProductDTO> response = productController.getProductById(productId);
 
-//         mockMvc.perform(get(API_ENDPOINT + "/99"))
-//                 .andExpect(status().isNotFound());
-//     }
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(productDto, response.getBody());
+    }
 
-//     @Test
-//     void getProductsByCategory_ShouldReturnProductPage() throws Exception {
-//         List<ProductDTO> products = Arrays.asList(productDTO);
-//         Page<ProductDTO> productPage = new PageImpl<>(products);
+    @Test
+    void getProductById_ShouldReturnNotFound_WhenProductNotFound() {
+        Long productId = 1L;
 
-//         when(productService.getProductsByCategory(anyLong(), any(Pageable.class))).thenReturn(productPage);
+        when(productService.getProductById(productId)).thenThrow(new ProductNotFoundException("Product not found"));
 
-//         mockMvc.perform(get(API_ENDPOINT + "/category/1"))
-//                 .andExpect(status().isOk())
-//                 .andExpect(jsonPath("$.content[0].id").value(1))
-//                 .andExpect(jsonPath("$.content[0].name").value("Test Product"));
-//     }
+        ResponseEntity<ProductDTO> response = productController.getProductById(productId);
 
-//     @Test
-//     void getProductsByKeyword_ShouldReturnProductPage() throws Exception {
-//         List<ProductDTO> products = Arrays.asList(productDTO);
-//         Page<ProductDTO> productPage = new PageImpl<>(products);
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+    }
 
-//         when(productService.searchProductsByKeyword(anyString(), any(Pageable.class))).thenReturn(productPage);
+    @Test
+    void updateProduct_ShouldReturnUpdatedProduct1() {
+        Long productId = 1L;
+        ProductDTO productDto = new ProductDTO();
+        productDto.setCategory(new CategoryDTO(1L));
 
-//         mockMvc.perform(get(API_ENDPOINT + "/keyword/test"))
-//                 .andExpect(status().isOk())
-//                 .andExpect(jsonPath("$.content[0].id").value(1))
-//                 .andExpect(jsonPath("$.content[0].name").value("Test Product"));
-//     }
+        when(productService.updateProduct(eq(productId), any())).thenReturn(productDto);
 
-//     @Test
-//     void updateProduct_ShouldReturnUpdatedProduct() throws Exception {
-//         when(productService.updateProduct(anyLong(), any(ProductDTO.class))).thenReturn(productDTO);
+        ResponseEntity<ProductDTO> response = productController.updateProduct(productId, productDto);
 
-//         mockMvc.perform(put(API_ENDPOINT + "/1")
-//                 .contentType(MediaType.APPLICATION_JSON)
-//                 .content(objectMapper.writeValueAsString(productDTO)))
-//                 .andExpect(status().isOk())
-//                 .andExpect(jsonPath("$.id").value(1))
-//                 .andExpect(jsonPath("$.name").value("Test Product"));
-//     }
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(productDto, response.getBody());
+    }
 
-//     @Test
-//     void deleteProduct_ShouldReturnNoContent() throws Exception {
-//         doNothing().when(productService).deleteProduct(1L);
+    @Test
+    void deleteProduct_ShouldReturnNoContent() {
+        Long productId = 1L;
 
-//         mockMvc.perform(delete(API_ENDPOINT + "/1"))
-//                 .andExpect(status().isNoContent());
-//     }
+        doNothing().when(productService).deleteProduct(productId);
 
-//     @Test
-//     void createProduct_ShouldReturnBadRequest_WhenNameIsEmpty() throws Exception {
-//         productDTO.setName(""); // Nombre vacío
+        ResponseEntity<Void> response = productController.deleteProduct(productId);
 
-//         mockMvc.perform(post(API_ENDPOINT)
-//                 .contentType(MediaType.APPLICATION_JSON)
-//                 .content(objectMapper.writeValueAsString(productDTO)))
-//                 .andExpect(status().isBadRequest());
-//     }
-// }
+        assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
+    }
+
+    @Test
+    void getAllProducts_ShouldReturnPageOfProducts() {
+        ProductDTO productDto1 = new ProductDTO();
+        ProductDTO productDto2 = new ProductDTO();
+        Page<ProductDTO> productPage = new PageImpl<>(Arrays.asList(productDto1, productDto2));
+
+        when(productService.getAllProducts(any())).thenReturn(productPage);
+
+        ResponseEntity<Page<ProductDTO>> response = productController.getAllProducts(null);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(2, response.getBody().getContent().size());
+    }
+
+    @Test
+    void updateProduct_ShouldReturnUpdatedProduct() {
+        Long productId = 1L;
+        ProductDTO productDto = new ProductDTO();
+        productDto.setCategory(new CategoryDTO(1L));
+        productDto.setImageHash(Optional.of("base64Image1"));
+        productDto.setImageHash2(Optional.of("base64Image2"));
+
+        when(imageService.uploadBase64(any())).thenReturn(Optional.of("uploadedImageUrl"));
+        when(productService.updateProduct(eq(productId), any())).thenReturn(productDto);
+
+        ResponseEntity<ProductDTO> response = productController.updateProduct(productId, productDto);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(productDto, response.getBody());
+        verify(productService).updateProduct(eq(productId), any());
+    }
+
+    @Test
+    void updateProduct_ShouldThrowIllegalArgumentException_WhenCategoryIsNull() {
+        Long productId = 1L;
+        ProductDTO productDto = new ProductDTO();
+        productDto.setCategory(null);
+
+        assertThrows(IllegalArgumentException.class, () -> productController.updateProduct(productId, productDto));
+    }
+
+    @Test
+    void updateProduct_ShouldReturnBadRequest_WhenImageUploadFails() {
+        Long productId = 1L;
+        ProductDTO productDto = new ProductDTO();
+        productDto.setCategory(new CategoryDTO(1L));
+        productDto.setImageHash(Optional.of("base64Image1"));
+
+        when(imageService.uploadBase64(any())).thenThrow(new IllegalArgumentException("Failed to upload image 1"));
+
+        ResponseEntity<ProductDTO> response = productController.updateProduct(productId, productDto);
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertNull(response.getBody());
+    }
+
+    @Test
+    void updateProduct_ShouldReturnBadRequest_WhenUpdateFails() {
+        Long productId = 1L;
+        ProductDTO productDto = new ProductDTO();
+        productDto.setCategory(new CategoryDTO(1L));
+
+        when(imageService.uploadBase64(any())).thenReturn(Optional.of("uploadedImageUrl"));
+        when(productService.updateProduct(eq(productId), any())).thenThrow(new RuntimeException("Update failed"));
+
+        ResponseEntity<ProductDTO> response = productController.updateProduct(productId, productDto);
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertNull(response.getBody());
+    }
+
+    @Test
+    void getDiscountedProducts_ShouldReturnDiscountedProducts() {
+        List<ProductDTO> expectedProducts = new ArrayList<>();
+        expectedProducts.add(new ProductDTO());
+        expectedProducts.add(new ProductDTO());
+
+        when(productService.getDiscountedProducts()).thenReturn(expectedProducts);
+
+        ResponseEntity<List<ProductDTO>> response = productController.getDiscountedProducts();
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(expectedProducts, response.getBody());
+        verify(productService).getDiscountedProducts();
+    }
+
+    @Test
+    void getNewProducts_ShouldReturnNewProducts() {
+        List<ProductDTO> expectedProducts = new ArrayList<>();
+        expectedProducts.add(new ProductDTO());
+        expectedProducts.add(new ProductDTO());
+
+        when(productService.getNewProducts()).thenReturn(expectedProducts);
+
+        ResponseEntity<List<ProductDTO>> response = productController.getNewProducts();
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(expectedProducts, response.getBody());
+        verify(productService).getNewProducts();
+    }
+
+    @Test
+    void getProductsByCategory_ShouldReturnProductsByCategory() {
+        Long categoryId = 1L;
+        Pageable pageable = Pageable.ofSize(8);
+        List<ProductDTO> expectedProducts = new ArrayList<>();
+        expectedProducts.add(new ProductDTO());
+        expectedProducts.add(new ProductDTO());
+
+        Page<ProductDTO> productPage = new PageImpl<>(expectedProducts, pageable, expectedProducts.size());
+
+        when(productService.getProductsByCategory(categoryId, pageable)).thenReturn(productPage);
+
+        ResponseEntity<Page<ProductDTO>> response = productController.getProductsByCategory(categoryId, pageable);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(productPage, response.getBody());
+        verify(productService).getProductsByCategory(categoryId, pageable);
+    }
+
+    @Test
+    void getProductsByKeyword_ShouldReturnProductsByKeyword() {
+        String keyword = "funko";
+        Pageable pageable = Pageable.ofSize(8);
+        List<ProductDTO> expectedProducts = new ArrayList<>();
+        expectedProducts.add(new ProductDTO());
+        expectedProducts.add(new ProductDTO());
+
+        Page<ProductDTO> productPage = new PageImpl<>(expectedProducts, pageable, expectedProducts.size());
+
+        when(productService.searchProductsByKeyword(keyword, pageable)).thenReturn(productPage);
+
+        ResponseEntity<Page<ProductDTO>> response = productController.getProductsByKeyword(keyword, pageable);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(productPage, response.getBody());
+        verify(productService).searchProductsByKeyword(keyword, pageable);
+    }
+}

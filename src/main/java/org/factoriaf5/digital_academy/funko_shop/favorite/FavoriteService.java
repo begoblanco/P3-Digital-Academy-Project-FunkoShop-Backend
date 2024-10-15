@@ -47,7 +47,7 @@ public class FavoriteService {
                 .collect(Collectors.toList());
     }
 
-    private ProductDTO convertToProductDTO(Product product) {
+    public ProductDTO convertToProductDTO(Product product) {
          @SuppressWarnings("unused")
         List<OrderItem> orderItems = Optional.ofNullable(product.getOrderItems())
                 .orElse(Collections.emptyList());
@@ -79,14 +79,14 @@ public class FavoriteService {
                 averageRating);
     }
 
-    private float calculateDiscountedPrice(float price, int discount) {
+    public float calculateDiscountedPrice(float price, int discount) {
         if (discount > 0) {
             return price - (price * discount / 100);
         }
         return price;
     }
 
-    private CategoryDTO convertToCategoryDTO(Category category) {
+    public CategoryDTO convertToCategoryDTO(Category category) {
         if (category == null) {
             return null;
         }
@@ -97,7 +97,7 @@ public class FavoriteService {
                 category.isHighlights());
     }
 
-    private FavoriteDTO convertToFavoriteDTO(Favorite favorite) {
+    public FavoriteDTO convertToFavoriteDTO(Favorite favorite) {
         return new FavoriteDTO(favorite.getId(), convertToProductDTO(favorite.getProduct()),
                 favorite.getUser().getId());
     }

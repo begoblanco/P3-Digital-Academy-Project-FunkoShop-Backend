@@ -27,6 +27,7 @@ public class AuthenticationControllerTest {
     @Mock
     private AuthenticationService authenticationService;
 
+    @SuppressWarnings("unused")
     private MockMvc mockMvc;
 
     @BeforeEach

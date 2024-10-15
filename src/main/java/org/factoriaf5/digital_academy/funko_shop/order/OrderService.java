@@ -138,7 +138,7 @@ public class OrderService {
                 .map(this::mapToDTO);
     }
 
-    private OrderItem mapToOrderItem(OrderItemDTO dto, Order order) {
+    public OrderItem mapToOrderItem(OrderItemDTO dto, Order order) {
         OrderItem orderItem = new OrderItem();
         orderItem.setId(dto.getId());
         orderItem.setQuantity(dto.getQuantity());
@@ -153,7 +153,7 @@ public class OrderService {
         return orderItem;
     }
 
-    private OrderDTO mapToDTO(Order order) {
+    public OrderDTO mapToDTO(Order order) {
         List<OrderItemDTO> orderItemsDTO = order.getOrderItems() != null ? order.getOrderItems().stream()
                 .map(this::mapToOrderItemDTO)
                 .collect(Collectors.toList()) : Collections.emptyList();
@@ -173,7 +173,7 @@ public class OrderService {
                 trackingDTO);
     }
 
-    private OrderItemDTO mapToOrderItemDTO(OrderItem orderItem) {
+    public OrderItemDTO mapToOrderItemDTO(OrderItem orderItem) {
         ProductDTO productDTO = mapToProductDTO(orderItem.getProduct());
 
         return new OrderItemDTO(
@@ -183,7 +183,7 @@ public class OrderService {
                 productDTO);
     }
 
-    private ProductDTO mapToProductDTO(Product product) {
+    public ProductDTO mapToProductDTO(Product product) {
         List<Review> reviews = product.getOrderItems().stream()
                 .map(OrderItem::getReview)
                 .filter(Objects::nonNull)
@@ -211,14 +211,14 @@ public class OrderService {
                 averageRating);
     }
 
-    private float calculateDiscountedPrice(float price, int discount) {
+    public float calculateDiscountedPrice(float price, int discount) {
         if (discount > 0) {
             return price - (price * discount / 100);
         }
         return price;
     }
 
-    private CategoryDTO mapToCategoryDTO(Category category) {
+    public CategoryDTO mapToCategoryDTO(Category category) {
         if (category == null) {
             return null;
         }

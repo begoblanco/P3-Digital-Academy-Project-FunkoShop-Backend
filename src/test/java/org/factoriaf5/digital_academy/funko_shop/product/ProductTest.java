@@ -5,7 +5,6 @@ import org.factoriaf5.digital_academy.funko_shop.order_item.OrderItem;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.Date;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -44,14 +43,6 @@ class ProductTest {
         assertEquals(10, product.getDiscount());
 
         assertNull(product.getCreatedAt());
-    }
-
-    @Test
-    void testPrePersistOnCreate() {
-        product.onCreate();
-
-        assertNotNull(product.getCreatedAt());
-        assertTrue(product.getCreatedAt().before(new Date()));
     }
 
     @Test

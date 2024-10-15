@@ -1,5 +1,6 @@
 package org.factoriaf5.digital_academy.funko_shop.review;
 
+import org.factoriaf5.digital_academy.funko_shop.user.User;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -7,15 +8,14 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 
-
-import java.util.Arrays;
-import java.util.List;
+import java.security.Principal;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 public class ReviewControllerTest {
 
@@ -25,63 +25,56 @@ public class ReviewControllerTest {
     @Mock
     private ReviewService reviewService;
 
+    @Mock
+    private Principal mockPrincipal;
+
+    @Mock
+    private User mockUser;
+
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
+
+        when(mockPrincipal.getName()).thenReturn("user@example.com");
+        when(mockUser.getEmail()).thenReturn("user@example.com");
     }
 
     @Test
-    void addReview_ShouldReturnCreatedReview() {
-        ReviewDTO reviewDTO = new ReviewDTO(1L, 5, null, null);
-        when(reviewService.addReview(any(ReviewDTO.class))).thenReturn(reviewDTO);
+    void addReview_ShouldReturnCreatedStatus() {
+        UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(mockUser, null);
 
-        ResponseEntity<ReviewDTO> response = reviewController.addReview(reviewDTO);
+        ReviewDTO reviewDTO = new ReviewDTO(1L, 5, 1L);
+        doNothing().when(reviewService).addReview(any(ReviewDTO.class), any(User.class));
+
+        ResponseEntity<?> response = reviewController.addReview(authenticationToken, reviewDTO);
 
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
-        assertEquals(reviewDTO, response.getBody());
-    }
-
-    @Test
-    void getReviewById_ShouldReturnReview() {
-        ReviewDTO reviewDTO = new ReviewDTO(1L, 5, null, null);
-        when(reviewService.getReviewById(anyLong())).thenReturn(reviewDTO);
-
-        ResponseEntity<ReviewDTO> response = reviewController.getReviewById(1L);
-
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals(reviewDTO, response.getBody());
-    }
-
-    @Test
-    void getAllReviews_ShouldReturnReviews() {
-        List<ReviewDTO> reviewDTOs = Arrays.asList(
-                new ReviewDTO(1L, 5, null, null),
-                new ReviewDTO(2L, 4, null, null)
-        );
-        when(reviewService.getAllReviews()).thenReturn(reviewDTOs);
-
-        ResponseEntity<List<ReviewDTO>> response = reviewController.getAllReviews();
-
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals(reviewDTOs, response.getBody());
+        verify(reviewService, times(1)).addReview(any(ReviewDTO.class), any(User.class));
     }
 
     @Test
     void updateReview_ShouldReturnUpdatedReview() {
-        ReviewDTO reviewDTO = new ReviewDTO(1L, 5, null, null);
-        when(reviewService.updateReview(anyLong(), any(ReviewDTO.class))).thenReturn(reviewDTO);
+        UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(mockUser, null);
 
-        ResponseEntity<ReviewDTO> response = reviewController.updateReview(1L, reviewDTO);
+        ReviewDTO reviewDTO = new ReviewDTO(1L, 4, 1L);
+        when(reviewService.updateReview(any(ReviewDTO.class), any(User.class))).thenReturn(reviewDTO);
+
+        ResponseEntity<ReviewDTO> response = reviewController.updateReview(authenticationToken, reviewDTO);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(reviewDTO, response.getBody());
     }
 
     @Test
-    void deleteReview_ShouldReturnNoContent() {
+    void getReviewByIdAndUser_ShouldReturnReview() {
+        UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(mockUser, null);
 
-        ResponseEntity<Void> response = reviewController.deleteReview(1L);
+        ReviewDTO reviewDTO = new ReviewDTO(1L, 5, 1L);
+        when(reviewService.getReviewByOrderItemIdAndUser(anyLong(), any(User.class))).thenReturn(reviewDTO);
 
-        assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
+        ResponseEntity<ReviewDTO> response = reviewController.getReviewByIdAndUser(authenticationToken, 1L);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(reviewDTO, response.getBody());
     }
 }

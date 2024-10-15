@@ -1,22 +1,25 @@
 package org.factoriaf5.digital_academy.funko_shop.review;
 
 import org.factoriaf5.digital_academy.funko_shop.order_item.OrderItem;
-import org.factoriaf5.digital_academy.funko_shop.order_item.OrderItemDTO;
 import org.factoriaf5.digital_academy.funko_shop.order_item.OrderItemRepository;
 import org.factoriaf5.digital_academy.funko_shop.user.User;
-import org.factoriaf5.digital_academy.funko_shop.user.UserDTO;
 import org.factoriaf5.digital_academy.funko_shop.user.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import java.util.Arrays;
-import java.util.List;
+
+import java.util.NoSuchElementException;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class ReviewServiceTest {
@@ -39,88 +42,37 @@ public class ReviewServiceTest {
     }
 
     @Test
-    void addReview_ShouldReturnReviewDTO() {
-
+    void addReview_ShouldSaveReview() {
         OrderItem orderItem = new OrderItem();
         orderItem.setId(1L);
         User user = new User();
         user.setId(1L);
 
-        Review review = new Review();
-        review.setId(1L);
-        review.setRating(5);
-        review.setOrderItem(orderItem);
-        review.setUser(user);
+        ReviewDTO reviewDTO = new ReviewDTO(1L, 5, 1L);
 
-        ReviewDTO reviewDTO = new ReviewDTO(1L, 5, new OrderItemDTO(1L, 1, null, null, null), new UserDTO(1L, null, null, null, null, null, null, null, null));
-        when(orderItemRepository.findById(anyLong())).thenReturn(java.util.Optional.of(orderItem));
-        when(userRepository.findById(anyLong())).thenReturn(java.util.Optional.of(user));
-        when(reviewRepository.save(any(Review.class))).thenReturn(review);
+        when(orderItemRepository.findById(anyLong())).thenReturn(Optional.of(orderItem));
+        when(userRepository.findById(anyLong())).thenReturn(Optional.of(user));
 
-      
-        ReviewDTO result = reviewService.addReview(reviewDTO);
+        reviewService.addReview(reviewDTO, user);
 
-       
-        assertEquals(reviewDTO.getId(), result.getId());
-        assertEquals(reviewDTO.getRating(), result.getRating());
-    }
+        verify(reviewRepository).save(any(Review.class));
 
-    @Test
-    void getReviewById_ShouldReturnReviewDTO() {
-        
-        OrderItem orderItem = new OrderItem();
-        orderItem.setId(1L);
-        User user = new User();
-        user.setId(1L);
+        Review reviewToSave = new Review();
+        reviewToSave.setRating(reviewDTO.getRating());
+        reviewToSave.setOrderItem(orderItem);
+        reviewToSave.setUser(user);
 
-        Review review = new Review();
-        review.setId(1L);
-        review.setRating(5);
-        review.setOrderItem(orderItem);
-        review.setUser(user);
+        ArgumentCaptor<Review> reviewCaptor = ArgumentCaptor.forClass(Review.class);
+        verify(reviewRepository).save(reviewCaptor.capture());
 
-        ReviewDTO reviewDTO = new ReviewDTO(1L, 5, new OrderItemDTO(1L, 1, null, null, null), new UserDTO(1L, null, null, null, null, null, null, null, null));
-        when(reviewRepository.findById(anyLong())).thenReturn(java.util.Optional.of(review));
-
-      
-        ReviewDTO result = reviewService.getReviewById(1L);
-
-        
-        assertEquals(reviewDTO.getId(), result.getId());
-        assertEquals(reviewDTO.getRating(), result.getRating());
-    }
-
-    @Test
-    void getAllReviews_ShouldReturnListOfReviewDTOs() {
-        
-        OrderItem orderItem = new OrderItem();
-        orderItem.setId(1L);
-        User user = new User();
-        user.setId(1L);
-
-        List<Review> reviews = Arrays.asList(
-            new Review(1L, 5, orderItem, user),
-            new Review(2L, 4, orderItem, user)
-        );
-
-        List<ReviewDTO> reviewDTOs = Arrays.asList(
-            new ReviewDTO(1L, 5, new OrderItemDTO(1L, 1, null, null, null), new UserDTO(1L, null, null, null, null, null, null, null, null)),
-            new ReviewDTO(2L, 4, new OrderItemDTO(1L, 1, null, null, null), new UserDTO(1L, null, null, null, null, null, null, null, null))
-        );
-
-        when(reviewRepository.findAll()).thenReturn(reviews);
-
-        
-        List<ReviewDTO> result = reviewService.getAllReviews();
-
-       
-        assertEquals(reviewDTOs.size(), result.size());
-        assertEquals(reviewDTOs.get(0).getId(), result.get(0).getId());
+        Review savedReview = reviewCaptor.getValue();
+        assertEquals(reviewDTO.getRating(), savedReview.getRating());
+        assertEquals(orderItem, savedReview.getOrderItem());
+        assertEquals(user, savedReview.getUser());
     }
 
     @Test
     void updateReview_ShouldReturnUpdatedReviewDTO() {
-       
         OrderItem orderItem = new OrderItem();
         orderItem.setId(1L);
         User user = new User();
@@ -138,38 +90,76 @@ public class ReviewServiceTest {
         updatedReview.setOrderItem(orderItem);
         updatedReview.setUser(user);
 
-        ReviewDTO reviewDTO = new ReviewDTO(1L, 5, new OrderItemDTO(1L, 1, null, null, null), new UserDTO(1L, null, null, null, null, null, null, null, null));
-        when(reviewRepository.findById(anyLong())).thenReturn(java.util.Optional.of(existingReview));
-        when(orderItemRepository.findById(anyLong())).thenReturn(java.util.Optional.of(orderItem));
-        when(userRepository.findById(anyLong())).thenReturn(java.util.Optional.of(user));
+        ReviewDTO reviewDTO = new ReviewDTO(1L, 5, 1L);
+
+        when(reviewRepository.findById(anyLong())).thenReturn(Optional.of(existingReview));
+        when(orderItemRepository.findById(anyLong())).thenReturn(Optional.of(orderItem));
+        when(userRepository.findById(anyLong())).thenReturn(Optional.of(user));
         when(reviewRepository.save(any(Review.class))).thenReturn(updatedReview);
 
-        
-        ReviewDTO result = reviewService.updateReview(1L, reviewDTO);
+        ReviewDTO result = reviewService.updateReview(reviewDTO, user);
 
-        
         assertEquals(reviewDTO.getId(), result.getId());
         assertEquals(reviewDTO.getRating(), result.getRating());
+        assertEquals(reviewDTO.getOrderItem(), result.getOrderItem());
     }
 
     @Test
-    void deleteReview_ShouldCallDelete() {
-       
-        OrderItem orderItem = new OrderItem();
-        orderItem.setId(1L);
+    void addReview_ShouldThrowIllegalArgumentException_WhenOrderItemNotFound() {
+        when(orderItemRepository.findById(anyLong())).thenReturn(Optional.empty());
+
+        ReviewDTO reviewDTO = new ReviewDTO(1L, 5, 1L);
         User user = new User();
         user.setId(1L);
 
-        Review review = new Review();
-        review.setId(1L);
-        review.setRating(5);
-        review.setOrderItem(orderItem);
-        review.setUser(user);
-
-        when(reviewRepository.findById(anyLong())).thenReturn(java.util.Optional.of(review));
-
-       
-        reviewService.deleteReview(1L);
-
+        assertThrows(IllegalArgumentException.class, () -> {
+            reviewService.addReview(reviewDTO, user);
+        });
     }
+
+    @Test
+    void addReview_ShouldThrowIllegalArgumentException_WhenReviewAlreadyExists() {
+        OrderItem orderItem = new OrderItem();
+        when(orderItemRepository.findById(anyLong())).thenReturn(Optional.of(orderItem));
+
+        Review existingReview = new Review();
+        when(reviewRepository.findByOrderItemAndUser(any(OrderItem.class), any(User.class)))
+                .thenReturn(existingReview);
+
+        ReviewDTO reviewDTO = new ReviewDTO(1L, 5, 1L);
+        User user = new User();
+        user.setId(1L);
+
+        assertThrows(IllegalArgumentException.class, () -> {
+            reviewService.addReview(reviewDTO, user);
+        });
+    }
+
+    @Test
+void updateReview_ShouldThrowIllegalArgumentException_WhenOrderItemNotFound() {
+    when(orderItemRepository.findById(anyLong())).thenReturn(Optional.empty());
+
+    ReviewDTO reviewDTO = new ReviewDTO(1L, 5, 1L);
+    User user = new User();
+    user.setId(1L);
+
+    assertThrows(NoSuchElementException.class, () -> {
+        reviewService.updateReview(reviewDTO, user);
+    });
+}
+
+@Test
+void getReviewByOrderItemIdAndUser_ShouldReturnNull_WhenReviewNotFound() {
+    OrderItem orderItem = new OrderItem();
+    when(orderItemRepository.findById(anyLong())).thenReturn(Optional.of(orderItem));
+    when(reviewRepository.findByOrderItemAndUser(any(OrderItem.class), any(User.class)))
+            .thenReturn(null);
+
+    User user = new User();
+    user.setId(1L);
+
+    ReviewDTO result = reviewService.getReviewByOrderItemIdAndUser(1L, user);
+    assertNull(result);
+}
+
 }

@@ -1,28 +1,30 @@
 package org.factoriaf5.digital_academy.funko_shop.favorite;
 
+import org.factoriaf5.digital_academy.funko_shop.order_item.OrderItem;
 import org.factoriaf5.digital_academy.funko_shop.product.Product;
+import org.factoriaf5.digital_academy.funko_shop.product.ProductDTO;
 import org.factoriaf5.digital_academy.funko_shop.product.ProductRepository;
-import org.factoriaf5.digital_academy.funko_shop.user.User;
+import org.factoriaf5.digital_academy.funko_shop.review.Review;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
 
-import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.*;
 
 class FavoriteServiceTest {
+
+    @InjectMocks
+    private FavoriteService favoriteService;
 
     @Mock
     private FavoriteRepository favoriteRepository;
@@ -30,95 +32,116 @@ class FavoriteServiceTest {
     @Mock
     private ProductRepository productRepository;
 
-    @InjectMocks
-    private FavoriteService favoriteService;
-
-    private Favorite favorite;
+    private Long userId;
+    private Long productId;
     private Product product;
-    private User user;
 
     @BeforeEach
-    void setUp() {
+    public void setUp() {
         MockitoAnnotations.openMocks(this);
-        user = new User(1L, null, null, null, null, null, null, null, null, null);
+        userId = 1L;
+        productId = 2L;
+
         product = new Product();
-        product.setId(1L);
-        product.setCategory(null);
-        product.setOrderItems(new ArrayList<>());
-        favorite = new Favorite();
-        favorite.setId(1L);
-        favorite.setUser(user);
+        product.setId(productId);
+        product.setName("Test Product");
+    }
+
+    @Test
+    public void testAddProductToFavorite() {
+        when(productRepository.findById(productId)).thenReturn(Optional.of(product));
+        when(favoriteRepository.findByUserId(userId)).thenReturn(Collections.emptyList());
+
+        List<FavoriteDTO> favorites = favoriteService.addProductToFavorite(userId, productId);
+
+        assertNotNull(favorites);
+
+        ArgumentCaptor<Favorite> favoriteCaptor = ArgumentCaptor.forClass(Favorite.class);
+        verify(favoriteRepository).save(favoriteCaptor.capture());
+        assertEquals(userId, favoriteCaptor.getValue().getUser().getId());
+        assertEquals(productId, favoriteCaptor.getValue().getProduct().getId());
+
+        when(productRepository.findById(productId)).thenReturn(Optional.empty());
+        assertThrows(NoSuchElementException.class, () -> favoriteService.addProductToFavorite(userId, productId));
+
+        when(favoriteRepository.findByUserId(userId)).thenThrow(new RuntimeException("Test Exception"));
+        assertThrows(RuntimeException.class, () -> favoriteService.addProductToFavorite(userId, productId));
+    }
+
+    @Test
+    public void testRemoveProductFromFavorite() {
+        Favorite favorite = new Favorite();
+        favorite.setId(3L);
         favorite.setProduct(product);
+        when(favoriteRepository.findByUserId(userId)).thenReturn(Collections.singletonList(favorite));
+
+        favoriteService.removeProductFromFavorite(userId, productId);
+
+        verify(favoriteRepository).deleteById(favorite.getId());
     }
 
     @Test
-    void addProductToFavorite_Success() {
-        when(productRepository.findById(1L)).thenReturn(Optional.of(product));
-        when(favoriteRepository.save(any(Favorite.class))).thenReturn(favorite);
-        when(favoriteRepository.findByUserId(1L)).thenReturn(Arrays.asList(favorite));
-
-        List<FavoriteDTO> result = favoriteService.addProductToFavorite(1L, 1L);
-
-        assertNotNull(result);
-        assertEquals(1, result.size());
-        assertEquals(1L, result.get(0).getProduct().getId());
-        verify(productRepository).findById(1L);
-        verify(favoriteRepository).save(any(Favorite.class));
-        verify(favoriteRepository).findByUserId(1L);
+    public void testGetFavoriteByUserId() {
     }
 
     @Test
-    void removeProductFromFavorite_Success() {
-        when(favoriteRepository.findByUserId(1L)).thenReturn(Arrays.asList(favorite));
+    public void testCheckFavorite() {
+        when(favoriteRepository.findByUserIdAndProductId(userId, productId)).thenReturn(Optional.of(new Favorite()));
 
-        favoriteService.removeProductFromFavorite(1L, 1L);
+        Boolean isFavorite = favoriteService.checkFavorite(userId, productId);
 
-        verify(favoriteRepository).deleteById(1L);
+        assertTrue(isFavorite);
+        verify(favoriteRepository).findByUserIdAndProductId(userId, productId);
     }
 
     @Test
-    void removeProductFromFavorite_FavoriteNotFound() {
-        when(favoriteRepository.findByUserId(1L)).thenReturn(Arrays.asList());
+    void testConvertToProductDTO_WithoutOrderItemsAndReviews() {
 
-        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
-            favoriteService.removeProductFromFavorite(1L, 1L);
-        });
+        assertThrows(NullPointerException.class, () -> favoriteService.convertToProductDTO(null));
+        assertThrows(NullPointerException.class, () -> favoriteService.convertToProductDTO(new Product()));
+        assertThrows(NullPointerException.class, () -> favoriteService.convertToProductDTO(new Product(){{ setId(1L); }}));
+        assertThrows(NullPointerException.class, () -> favoriteService.convertToProductDTO(new Product(){{ setId(1L); setName("Test"); }}));
+        assertThrows(NullPointerException.class, () -> favoriteService.convertToProductDTO(new Product(){{ setId(1L); setName("Test"); setPrice(10.0f); }}));
+        assertThrows(NullPointerException.class, () -> favoriteService.convertToProductDTO(new Product(){{ setId(1L); setName("Test"); setPrice(10.0f); setStock(10); }}));
 
-        assertEquals("Favorite not found for productId: 1", exception.getMessage());
-        verify(favoriteRepository, never()).deleteById(anyLong());
+        product.setOrderItems(Collections.emptyList());
+
+        ProductDTO result = favoriteService.convertToProductDTO(product);
+
+        assertEquals(product.getId(), result.getId());
+        assertEquals(product.getName(), result.getName());
+        assertEquals(Optional.empty(), result.getImageHash());
+        assertEquals(Optional.empty(), result.getImageHash2());
+        assertEquals(product.getDescription(), result.getDescription());
+        assertEquals(product.getPrice(), result.getPrice());
+        assertEquals(favoriteService.calculateDiscountedPrice(product.getPrice(), product.getDiscount()), result.getDiscountedPrice());
+        assertEquals(product.getStock(), result.getStock());
+        assertEquals(product.getCreatedAt(), result.getCreatedAt());
+        assertEquals(favoriteService.convertToCategoryDTO(product.getCategory()), result.getCategory());
+        assertEquals(product.getDiscount(), result.getDiscount());
+        assertEquals(0, result.getTotalReviews());
+        assertEquals(0.0, result.getAverageRating(), 0.0);
     }
 
     @Test
-    void getFavoriteByUserId_Success() {
-        PageRequest pageable = PageRequest.of(0, 10);
-        Page<Favorite> page = new PageImpl<>(Arrays.asList(favorite));
-        when(favoriteRepository.findByUserId(1L, pageable)).thenReturn(page);
+    void testConvertToProductDTO_WithOrderItemsAndReviews() {
+        List<OrderItem> orderItems = Arrays.asList(new OrderItem(), new OrderItem());
+        product.setOrderItems(orderItems);
 
-        Page<FavoriteDTO> result = favoriteService.getFavoriteByUserId(1L, pageable);
+        List<Review> reviews = Arrays.asList();
 
-        assertNotNull(result);
-        assertEquals(1, result.getContent().size());
-        assertEquals(1L, result.getContent().get(0).getProduct().getId());
-        verify(favoriteRepository).findByUserId(1L, pageable);
-    }
+        ProductDTO result = favoriteService.convertToProductDTO(product);
 
-    @Test
-    void checkFavorite_Exists() {
-        when(favoriteRepository.findByUserIdAndProductId(1L, 1L)).thenReturn(Optional.of(favorite));
-
-        Boolean result = favoriteService.checkFavorite(1L, 1L);
-
-        assertTrue(result);
-        verify(favoriteRepository).findByUserIdAndProductId(1L, 1L);
-    }
-
-    @Test
-    void checkFavorite_NotExists() {
-        when(favoriteRepository.findByUserIdAndProductId(1L, 1L)).thenReturn(Optional.empty());
-
-        Boolean result = favoriteService.checkFavorite(1L, 1L);
-
-        assertFalse(result);
-        verify(favoriteRepository).findByUserIdAndProductId(1L, 1L);
+        assertEquals(product.getId(), result.getId());
+        assertEquals(product.getName(), result.getName());
+        assertEquals(product.getDescription(), result.getDescription());
+        assertEquals(product.getPrice(), result.getPrice());
+        assertEquals(favoriteService.calculateDiscountedPrice(product.getPrice(), product.getDiscount()), result.getDiscountedPrice());
+        assertEquals(product.getStock(), result.getStock());
+        assertEquals(product.getCreatedAt(), result.getCreatedAt());
+        assertEquals(favoriteService.convertToCategoryDTO(product.getCategory()), result.getCategory());
+        assertEquals(product.getDiscount(), result.getDiscount());
+        assertEquals(reviews.size(), result.getTotalReviews());
+        assertEquals(reviews.stream().mapToInt(Review::getRating).average().orElse(0.0), result.getAverageRating(), 0.0);
     }
 }

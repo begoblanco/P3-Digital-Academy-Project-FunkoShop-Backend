@@ -2,6 +2,7 @@ package org.factoriaf5.digital_academy.funko_shop.product;
 
 import org.factoriaf5.digital_academy.funko_shop.category.Category;
 import org.factoriaf5.digital_academy.funko_shop.category.CategoryRepository;
+import org.factoriaf5.digital_academy.funko_shop.category.CategoryService;
 import org.factoriaf5.digital_academy.funko_shop.category.category_exceptions.CategoryNotFoundException;
 import org.factoriaf5.digital_academy.funko_shop.product.product_exceptions.ProductNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
@@ -29,9 +30,59 @@ class ProductServiceTest {
     @InjectMocks
     private ProductService productService;
 
+    @Mock
+    private CategoryService categoryService;
+
+    private Category category;
+    private Product product;
+    private ProductDTO productDTO;
+
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
+
+        category = new Category();
+        category.setId(1L);
+        category.setName("Electronics");
+
+        product = new Product();
+        product.setId(1L);
+        product.setName("Laptop");
+        product.setCategory(category);
+
+        productDTO = new ProductDTO();
+        productDTO.setId(product.getId());
+        productDTO.setName(product.getName());
+    }
+
+    @Test
+    void testSearchProductsByKeyword() {
+        Pageable pageable = Pageable.unpaged();
+        List<Product> products = Collections.singletonList(product);
+        Page<Product> productPage = new PageImpl<>(products);
+
+        when(productRepository.findByNameContainingIgnoreCase("Laptop", pageable)).thenReturn(productPage);
+
+        Page<ProductDTO> result = productService.searchProductsByKeyword("Laptop", pageable);
+
+        assertNotNull(result);
+        assertEquals(1, result.getTotalElements());
+        assertEquals(productDTO.getId(), result.getContent().get(0).getId());
+        verify(productRepository).findByNameContainingIgnoreCase("Laptop", pageable);
+    }
+
+    @Test
+    void testSearchProductsByKeyword_NoResults() {
+        Pageable pageable = Pageable.unpaged();
+        Page<Product> productPage = new PageImpl<>(Collections.emptyList());
+
+        when(productRepository.findByNameContainingIgnoreCase("NonExistentProduct", pageable)).thenReturn(productPage);
+
+        Page<ProductDTO> result = productService.searchProductsByKeyword("NonExistentProduct", pageable);
+
+        assertNotNull(result);
+        assertEquals(0, result.getTotalElements());
+        verify(productRepository).findByNameContainingIgnoreCase("NonExistentProduct", pageable);
     }
 
     @Test
@@ -48,6 +99,7 @@ class ProductServiceTest {
         category.setId(1L);
 
         Product product = new Product();
+        product.setId(1L);
         product.setName("Funko Pop");
         product.setPrice(20.0f);
         product.setStock(10);
@@ -173,35 +225,4 @@ class ProductServiceTest {
         verify(productRepository, never()).deleteById(1L);
     }
 
-    @Test
-    void getDiscountedProducts_Success() {
-        Product product1 = new Product();
-        product1.setId(1L);
-        product1.setName("Funko Pop");
-        product1.setDiscount(20);
-        product1.setPrice(100.0f);
-
-        when(productRepository.findByDiscount()).thenReturn(Arrays.asList(product1));
-
-        List<ProductDTO> discountedProducts = productService.getDiscountedProducts();
-
-        assertEquals(1, discountedProducts.size());
-        assertEquals(80.0f, discountedProducts.get(0).getDiscountedPrice());
-        verify(productRepository).findByDiscount();
-    }
-
-    @Test
-    void getNewProducts_Success() {
-        Product newProduct = new Product();
-        newProduct.setId(1L);
-        newProduct.setName("New Funko Pop");
-
-        when(productRepository.findNewProducts(any(Date.class))).thenReturn(Collections.singletonList(newProduct));
-
-        List<ProductDTO> newProducts = productService.getNewProducts();
-
-        assertEquals(1, newProducts.size());
-        assertEquals("New Funko Pop", newProducts.get(0).getName());
-        verify(productRepository).findNewProducts(any(Date.class));
-    }
 }

@@ -1,126 +1,140 @@
 package org.factoriaf5.digital_academy.funko_shop.profile;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 import org.factoriaf5.digital_academy.funko_shop.profile.profile_exceptions.ProfileNotFoundException;
+import org.factoriaf5.digital_academy.funko_shop.user.User;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 
-class ProfileControllerTest {
+import java.security.Principal;
+import java.util.Collections;
+import java.util.List;
+
+public class ProfileControllerTest {
 
     @Mock
     private ProfileService profileService;
 
     @InjectMocks
-
     private ProfileController profileController;
 
+    private User user;
     private ProfileDTO profileDTO;
 
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
 
-        profileDTO = new ProfileDTO(1L, "Mauricio", "Colmenero", "666696969", "Esperanza Sur", "Madrid", "Madrid",
-                "28000", "Spain", true, true, null, null);
-    }
-    @Test
-    public void testGetAllProfiles() {
-        when(profileService.getAllProfiles()).thenReturn(null);
-        profileController.getAllProfiles();
-        verify(profileService, times(1)).getAllProfiles();
-    }
+        user = new User();
+        user.setId(1L);
+        user.setEmail("user@example.com");
 
-    @Test
-    public void testGetProfileById() {
-        when(profileService.getProfileById(1L)).thenReturn(profileDTO);
-        profileController.getProfileById(1L);
-        verify(profileService, times(1)).getProfileById(1L);
+        profileDTO = new ProfileDTO();
+        profileDTO.setUser(user.getId());
+        profileDTO.setFirstName("John");
+        profileDTO.setLastName("Doe");
     }
 
     @Test
-    public void testUpdateProfile() {
-        ProfileDTO profileDTO = new ProfileDTO();
-        profileDTO.setFirstName("Mauricio");
-        profileDTO.setLastName("Colmenero");
-        profileDTO.setPhoneNumber("666696969");
-        profileDTO.setStreet("Esperanza Sur");
-        profileDTO.setCity("Madrid");
-        profileDTO.setRegion("Madrid");
-        profileDTO.setPostalCode("28000");
-        profileDTO.setCountry("España");
-        profileDTO.setShipping(true);
-        profileDTO.setSubscribed(true);
+    void testGetAllProfiles() {
+        List<ProfileDTO> profiles = Collections.singletonList(profileDTO);
+        when(profileService.getAllProfiles()).thenReturn(profiles);
 
-        when(profileService.updateProfile(1L, profileDTO)).thenReturn(profileDTO);
+        ResponseEntity<List<ProfileDTO>> response = profileController.getAllProfiles();
 
-        ResponseEntity<ProfileDTO> response = profileController.updateProfile(1L, profileDTO);
+        assertNotNull(response);
+        assertEquals(200, response.getStatusCode().value());  
+        assertEquals(1, response.getBody().size());
+        verify(profileService).getAllProfiles();
+    }
 
-        assertEquals(HttpStatus.OK, response.getStatusCode());
+    @Test
+    void testGetProfileByUser() {
+        Principal principal = new UsernamePasswordAuthenticationToken(user, null);
+        SecurityContextHolder.getContext().setAuthentication((UsernamePasswordAuthenticationToken) principal);
 
+        when(profileService.getProfileByUser(user)).thenReturn(profileDTO);
+
+        ResponseEntity<ProfileDTO> response = profileController.getProfileByUser(principal);
+
+        assertNotNull(response);
+        assertEquals(200, response.getStatusCode().value()); 
         assertEquals(profileDTO, response.getBody());
-        verify(profileService, times(1)).updateProfile(1L, profileDTO);
+        verify(profileService).getProfileByUser(user);
     }
 
     @Test
-    public void testDeleteProfile() {
-        
-        doNothing().when(profileService).deleteProfile(1L);
-        
+    void testGetProfileByUser_NotFound() {
+        Principal principal = new UsernamePasswordAuthenticationToken(user, null);
+        SecurityContextHolder.getContext().setAuthentication((Authentication) principal);
+
+        when(profileService.getProfileByUser(user)).thenThrow(new ProfileNotFoundException("Profile not found"));
+
+        ResponseEntity<ProfileDTO> response = profileController.getProfileByUser(principal);
+
+        assertNotNull(response);
+        assertEquals(404, response.getStatusCode().value());  
+        verify(profileService).getProfileByUser(user);
+    }
+
+    @Test
+    void testUpdateProfile() {
+        Principal principal = new UsernamePasswordAuthenticationToken(user, null);
+        SecurityContextHolder.getContext().setAuthentication((Authentication) principal);
+
+        when(profileService.updateProfile(user, profileDTO)).thenReturn(profileDTO);
+
+        ResponseEntity<ProfileDTO> response = profileController.updateProfile(principal, profileDTO);
+
+        assertNotNull(response);
+        assertEquals(200, response.getStatusCode().value());  
+        assertEquals(profileDTO, response.getBody());
+        verify(profileService).updateProfile(user, profileDTO);
+    }
+
+    @Test
+    void testUpdateProfile_NotFound() {
+        Principal principal = new UsernamePasswordAuthenticationToken(user, null);
+        SecurityContextHolder.getContext().setAuthentication((Authentication) principal);
+
+        when(profileService.updateProfile(user, profileDTO)).thenThrow(new ProfileNotFoundException("Profile not found"));
+
+        ResponseEntity<ProfileDTO> response = profileController.updateProfile(principal, profileDTO);
+
+        assertNotNull(response);
+        assertEquals(404, response.getStatusCode().value());  
+        verify(profileService).updateProfile(user, profileDTO);
+    }
+
+    @Test
+    void testDeleteProfile() {
+        doNothing().when(profileService).deleteProfile(anyLong());
+
         ResponseEntity<Void> response = profileController.deleteProfile(1L);
 
-        assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
-        verify(profileService, times(1)).deleteProfile(1L);
-    }
-    @Test
-    public void testGetProfileById_NotFound() {
-        when(profileService.getProfileById(1L)).thenThrow(new ProfileNotFoundException("Profile not found"));
-        
-        ResponseEntity<ProfileDTO> response = profileController.getProfileById(1L);
-        
-        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
-        verify(profileService, times(1)).getProfileById(1L);
+        assertNotNull(response);
+        assertEquals(204, response.getStatusCode().value());  
+        verify(profileService).deleteProfile(1L);
     }
 
     @Test
-    public void testUpdateProfile_NotFound() {
-        ProfileDTO profileDTO = new ProfileDTO();
-        profileDTO.setFirstName("Mauricio");
-        profileDTO.setLastName("Colmenero");
-        profileDTO.setPhoneNumber("666696969");
-        profileDTO.setStreet("Esperanza Sur");
-        profileDTO.setCity("Madrid");
-        profileDTO.setRegion("Madrid");
-        profileDTO.setPostalCode("28000");
-        profileDTO.setCountry("España");
-        profileDTO.setShipping(true);
-        profileDTO.setSubscribed(true);
-
-        when(profileService.updateProfile(1L, profileDTO)).thenThrow(new ProfileNotFoundException("Profile not found"));
-
-        ResponseEntity<ProfileDTO> response = profileController.updateProfile(1L, profileDTO);
-
-        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
-        verify(profileService, times(1)).updateProfile(1L, profileDTO);
-    }
-
-    @Test
-    public void testDeleteProfile_NotFound() {
-        doThrow(new ProfileNotFoundException("Profile not found")).when(profileService).deleteProfile(1L);
+    void testDeleteProfile_NotFound() {
+        doThrow(new ProfileNotFoundException("Profile not found")).when(profileService).deleteProfile(anyLong());
 
         ResponseEntity<Void> response = profileController.deleteProfile(1L);
 
-        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
-        verify(profileService, times(1)).deleteProfile(1L);
+        assertNotNull(response);
+        assertEquals(404, response.getStatusCode().value());  
+        verify(profileService).deleteProfile(1L);
     }
 }

@@ -33,7 +33,10 @@ public class SecurityConfiguration {
                         "/api/v1/auth/**",
                         "/api/v1/products/**",
                         "/api/v1/categories/**",
-                        "/api/v1/news-letter/**" };
+                        "/api/v1/news-letter/**",
+                        "/v3/api-docs/**",
+                        "/swagger-ui/**",
+                        "/swagger-ui.html" };
         private final JwtAuthenticationFilter jwtAuthFilter;
         private final AuthenticationProvider authenticationProvider;
         private final LogoutHandler logoutHandler;
@@ -63,14 +66,19 @@ public class SecurityConfiguration {
         public CorsConfigurationSource corsConfiguration() {
                 CorsConfiguration configuration = new CorsConfiguration();
                 configuration.setAllowCredentials(true);
-                configuration.setAllowedOrigins(Arrays.asList("http://localhost:5173"));
+                configuration.setAllowedOrigins(Arrays.asList("http://localhost:5173", "http://localhost:8080"));
                 configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-                configuration.setAllowedHeaders(
-                                Arrays.asList("Authorization", "Content-Type", "Accept", "X-Requested-With", "Product-ID"));
+                configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Accept",
+                                "X-Requested-With", "Product-ID"));
                 configuration.setExposedHeaders(Arrays.asList("Authorization"));
-                UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-                source.registerCorsConfiguration("/**", configuration);
-                return source;
 
+                UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+                source.registerCorsConfiguration("/v3/api-docs/**", configuration);
+                source.registerCorsConfiguration("/swagger-ui/**", configuration);
+                source.registerCorsConfiguration("/swagger-ui.html", configuration);
+                source.registerCorsConfiguration("/**", configuration);
+
+                return source;
         }
+
 }
